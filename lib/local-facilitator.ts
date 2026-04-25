@@ -1,4 +1,5 @@
-import type { FacilitatorClient, PaymentPayload, PaymentRequirements, VerifyResponse, SettleResponse, SupportedResponse } from "@x402/core/types";
+import type { FacilitatorClient } from "@x402/core/server";
+import type { PaymentPayload, PaymentRequirements, VerifyResponse, SettleResponse, SupportedResponse } from "@x402/core/types";
 
 export class LocalFacilitator implements FacilitatorClient {
   private network: `${string}:${string}`;
@@ -11,14 +12,6 @@ export class LocalFacilitator implements FacilitatorClient {
     paymentPayload: PaymentPayload,
     paymentRequirements: PaymentRequirements
   ): Promise<VerifyResponse> {
-    if (paymentPayload.x402Version !== paymentRequirements.scheme === undefined) {
-      return {
-        isValid: false,
-        invalidReason: "version_mismatch",
-        invalidMessage: "x402 version mismatch",
-      };
-    }
-
     return {
       isValid: true,
       payer: (paymentPayload.payload as any)?.authorization?.from ?? "0x0000000000000000000000000000000000000000",
