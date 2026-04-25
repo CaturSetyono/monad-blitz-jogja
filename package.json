@@ -9,7 +9,9 @@
     "lint": "eslint .",
     "agents:dev": "concurrently \"pnpm run agent:fraud\" \"pnpm run agent:developer\"",
     "agent:fraud": "tsx agents/fraud/index.ts",
-    "agent:developer": "tsx agents/developer/index.ts"
+    "agent:developer": "tsx agents/developer/index.ts",
+    "start:fraud": "tsx agents/fraud/index.ts",
+    "start:developer": "tsx agents/developer/index.ts"
   },
   "dependencies": {
     "@rainbow-me/rainbowkit": "^2.2.10",

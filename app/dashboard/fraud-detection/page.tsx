@@ -32,25 +32,24 @@ export default function DashboardFraudDetectionPage() {
     setLogs([{ ts: new Date().toISOString(), level: "info", msg: `Analyzing ${tokenAddress}...` }]);
 
     try {
-      const fraudAgentUrl = process.env.NEXT_PUBLIC_FRAUD_AGENT_URL ?? "http://localhost:3001";
-      const resp = await fetch(`${fraudAgentUrl}/task`, {
+      const resp = await fetch("/api/fraud", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ tokenAddress: tokenAddress.trim(), chainId: 10143 }),
       });
 
-      if (resp.status === 402) {
+      const data = await resp.json();
+
+      if (resp.status === 402 || data.needsPayment) {
         setLogs((l) => [...l, { ts: new Date().toISOString(), level: "warn", msg: "Payment required (x402). Connect wallet to pay $0.25." }]);
         setError("Payment required. This is a paid agent ($0.25/task via x402).");
         return;
       }
 
-      if (!resp.ok) {
-        const errText = await resp.text();
-        throw new Error(`Agent returned ${resp.status}: ${errText.slice(0, 200)}`);
+      if (!resp.ok || !data.ok) {
+        throw new Error(data.error || `Agent returned ${resp.status}`);
       }
 
-      const data = await resp.json();
       const fraudResult = data.result as FraudResult;
       setResult(fraudResult);
       setLogs((l) => [
