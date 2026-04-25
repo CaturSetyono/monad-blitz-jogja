@@ -1,33 +1,76 @@
-# AGENTS.md
+# AGENTS.md — AgentBazaar
 
-## Repo Shape (Verified)
+**Project:** Trustless gig economy for autonomous AI agents on Monad.
+**Stack:** Next.js 16 · Solidity (Foundry) · x402 payments · viem/ethers · Tailwind 4
 
-- Next.js App Router frontend lives in `app/` (entrypoints: `app/layout.tsx`, `app/page.tsx`).
-- Styling is Tailwind CSS v4 with tokens defined in `app/globals.css` via `@theme` (no `tailwind.config.*` in this repo).
-- Smart contracts are a separate Foundry project in `contracts/`.
-- TypeScript (`tsconfig.json`) explicitly excludes `contracts/` and `docs/`.
+---
 
-## Commands (Root, pnpm)
+## Commands
 
-- Install: `pnpm install`
-- Dev: `pnpm dev`
-- Lint: `pnpm lint` (this repo uses `eslint.config.mjs`; Next CLI in this version does not provide `next lint`).
-- Build/serve: `pnpm build`, then `pnpm start`
+```bash
+# Install (pnpm only — lockfile is pnpm)
+pnpm install
 
-## Contracts (Foundry, run inside `contracts/`)
+# Next.js dev server
+pnpm dev
 
-- Build: `forge build`
-- Test: `forge test`
-- Single test file / test: `forge test --match-path test/Counter.t.sol --match-test test_Increment`
-- Formatter: `forge fmt`
-- Default chain config is in `contracts/foundry.toml`: `eth-rpc-url = https://testnet-rpc.monad.xyz`, `chain_id = 10143`, `solc_version = 0.8.28`.
+# Start all agent services concurrently (express servers via tsx)
+pnpm agents:dev
 
-## Non-Standard Git Helper (Easy To Misuse)
+# Individual agents
+pnpm agent:analyst    # tsx agents/analyst/index.ts
+pnpm agent:codewriter # tsx agents/codewriter/index.ts
+pnpm agent:router     # tsx agents/router/index.ts
 
-- `./push.sh "<message>"` creates 1 commit per changed file and then pushes to `origin/<current-branch>`.
-- It auto-selects a conventional-commit-like type based on filename heuristics; avoid this script if you want one logical commit spanning multiple files.
+# Contracts (run from contracts/)
+cd contracts
+forge build
+forge test -vv
+forge script script/Deploy.s.sol:Deploy --broadcast --private-key $DEPLOYER_PRIVATE_KEY
+forge script script/RegisterAgent.s.sol:RegisterAgent --broadcast --private-key $DEPLOYER_PRIVATE_KEY
+```
 
-## Known Stale / Mismatched Bits
+## Architecture
 
-- `package.json` includes `agent:*` / `agents:dev` scripts pointing at `agents/...`, but there is no `agents/` directory in the repo right now (those scripts will fail until added).
-- `CLAUDE.md` still claims the repo is "template-only" and references `docs/design-reference/image.png` (not present); treat it as stale except for its `push.sh` warning.
+Two separate systems in one repo:
+
+### `contracts/` — Solidity (Foundry)
+- `src/IdentityRegistry.sol` — ERC-721. Each agent = NFT with metadata (name, capability, endpoint, wallet, x402 flag). Agent IDs start at 1.
+- `src/ReputationRegistry.sol` — Stores per-agent feedback (score 1-5, proofOfPayment). `getAverageScore()` returns scaled by 100 (e.g. 400 = 4.00).
+- OpenZeppelin remapping: `@openzeppelin/contracts/` → `lib/openzeppelin-contracts/contracts/`
+- Solidity 0.8.28, Monad testnet (chain 10143)
+
+### Root — TypeScript/Next.js
+- `app/` — Next.js App Router (frontend skeleton, no page.tsx yet)
+- `agents/` — Independent Express HTTP servers, each run as a separate process via `tsx`
+  - `agents/analyst/` — Agent A: data-analysis capability
+  - `agents/codewriter/` — Agent B: code-generation, can sub-hire analyst via x402
+  - `agents/router/` — Task Router: queries on-chain registry, delegates to workers
+- `lib/` — Shared utilities (empty, intended for contract ABIs/addresses)
+- `app/api/task/` — Next.js API route placeholder for web→router bridge
+
+### Payment: x402 protocol
+All agent `/task` endpoints use x402 middleware (`@x402/next` or express wrapper). Agents call each other with `@x402/fetch` (`withPayment`). Denominated in USDC on Monad testnet.
+
+## Key Conventions
+
+- **Package manager:** pnpm (do not use npm or yarn)
+- **Path alias:** `@/*` maps to repo root (see `tsconfig.json` paths)
+- **tsconfig excludes `contracts/`** — Solidity is a separate build system
+- **No comments in code** unless explicitly requested
+- **Env files:** `.env` / `.env.*` are gitignored; `.env.example` is tracked
+- **Foundry artifacts** (`contracts/cache/`, `contracts/out/`, `contracts/broadcast/`) are gitignored
+- **`contracts/lib/`** (forge dependencies like openzeppelin-contracts) is NOT gitignored — it gets committed
+
+## Environment Variables
+
+Contracts need `DEPLOYER_PRIVATE_KEY`. RegisterAgent script additionally needs `IDENTITY_REGISTRY_ADDRESS`, `AGENT_NAME`, `AGENT_DESCRIPTION`, `AGENT_CAPABILITY`, `AGENT_ENDPOINT`, `AGENT_WALLET`. All loaded via `vm.env*()` in Forge scripts.
+
+Agent services need `MONAD_TESTNET_RPC`, `IDENTITY_REGISTRY_ADDRESS`, `REPUTATION_REGISTRY_ADDRESS`, plus per-agent wallet keys.
+
+## Monad Testnet
+
+- RPC: `https://testnet-rpc.monad.xyz`
+- Chain ID: 10143
+- Faucet: https://faucet.monad.xyz
+- Block Explorer: https://testnet.monadvision.com

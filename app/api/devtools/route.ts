@@ -1,18 +1,8 @@
 import { NextResponse } from "next/server";
 
-type DevTask =
-  | "code_review"
-  | "security_scan"
-  | "run_lint"
-  | "run_build"
-  | "suggest_refactor";
-
-function now() {
-  return new Date().toISOString();
-}
+type DevTask = "code_review" | "security_scan" | "run_lint" | "run_build" | "suggest_refactor";
 
 export async function POST(req: Request) {
-  const ts = now();
   try {
     const body = (await req.json()) as {
       repoUrl?: string;
@@ -20,61 +10,70 @@ export async function POST(req: Request) {
       scope?: string;
       task?: DevTask;
       notes?: string;
+      tokenAddress?: string;
+      code?: string;
+      codePath?: string;
     };
 
-    const repoUrl = (body.repoUrl || "").trim();
-    const branch = (body.branch || "main").trim();
-    const scope = (body.scope || "app/**").trim();
-    const task = body.task || "code_review";
+    const developerAgentUrl = process.env.DEVELOPER_AGENT_URL ?? "http://localhost:3002";
 
-    if (!repoUrl) {
-      return NextResponse.json(
-        { ok: false, logs: [{ ts, level: "error", msg: "Missing repoUrl." }] },
-        { status: 400 },
-      );
+    const agentResp = await fetch(`${developerAgentUrl}/task`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Dev-Bypass": "agentbazaar-dev",
+      },
+      body: JSON.stringify({
+        taskType: body.task ?? "code_review",
+        repoUrl: body.repoUrl,
+        branch: body.branch ?? "main",
+        scope: body.scope ?? "**",
+        notes: body.notes,
+        tokenAddress: body.tokenAddress,
+        code: body.code,
+        codePath: body.codePath,
+      }),
+    });
+
+    const raw = await agentResp.text();
+
+    if (agentResp.status === 402) {
+      const paymentHeader = agentResp.headers.get("payment-required");
+      return NextResponse.json({
+        ok: false,
+        needsPayment: true,
+        paymentRequired: paymentHeader ? JSON.parse(atob(paymentHeader)) : null,
+        logs: [{ ts: new Date().toISOString(), level: "warn" as const, msg: "Payment required (x402). Connect wallet and retry." }],
+      }, { status: 402 });
     }
 
-    // Stubbed run output. Replace this handler with your agent runtime integration.
-    const logs = [
-      { ts, level: "info" as const, msg: `Queued task: ${task}` },
-      { ts: now(), level: "info" as const, msg: `Repo: ${repoUrl}` },
-      { ts: now(), level: "info" as const, msg: `Branch: ${branch}` },
-      { ts: now(), level: "info" as const, msg: `Scope: ${scope}` },
-    ];
-
-    if (task === "code_review") {
-      logs.push({ ts: now(), level: "info", msg: "Simulating review pass (findings list + suggested patches)..." });
-      logs.push({ ts: now(), level: "warn", msg: "Example finding: add CI/lint task runner to prevent drift." });
+    if (!agentResp.ok) {
+      return NextResponse.json({
+        ok: false,
+        logs: [{ ts: new Date().toISOString(), level: "error" as const, msg: `Agent error: ${agentResp.status} ${raw.slice(0, 200)}` }],
+      }, { status: 502 });
     }
 
-    if (task === "security_scan") {
-      logs.push({ ts: now(), level: "info", msg: "Simulating security scan (contracts + frontend)..." });
-      logs.push({ ts: now(), level: "warn", msg: "Example finding: ensure no secrets committed; validate inputs for any webhook endpoints." });
-    }
+    const data = JSON.parse(raw);
+    const analysis = data.result?.analysis ?? "";
+    const logs = analysis.split("\n").filter(Boolean).map((line: string) => ({
+      ts: new Date().toISOString(),
+      level: line.includes("🔴") ? "error" as const : line.includes("🟡") ? "warn" as const : "info" as const,
+      msg: line.replace(/^#+\s*/, ""),
+    }));
 
-    if (task === "run_lint") {
-      logs.push({ ts: now(), level: "info", msg: "Would run: pnpm lint" });
-    }
-
-    if (task === "run_build") {
-      logs.push({ ts: now(), level: "info", msg: "Would run: pnpm build" });
-    }
-
-    if (task === "suggest_refactor") {
-      logs.push({ ts: now(), level: "info", msg: "Generating a refactor plan from the selected scope..." });
-    }
-
-    if ((body.notes || "").trim()) {
-      logs.push({ ts: now(), level: "info", msg: `Notes: ${(body.notes || "").trim()}` });
-    }
-
-    logs.push({ ts: now(), level: "info", msg: "Done (stub)." });
-
-    return NextResponse.json({ ok: true, logs, summary: "stub" });
+    return NextResponse.json({
+      ok: true,
+      logs,
+      summary: data.result?.analysis?.slice(0, 500) ?? "",
+      filesAnalyzed: data.result?.filesAnalyzed ?? [],
+      fraudAudit: data.result?.fraudAudit ?? null,
+      raw: data,
+    });
   } catch (e) {
-    return NextResponse.json(
-      { ok: false, logs: [{ ts, level: "error", msg: (e as Error).message }] },
-      { status: 500 },
-    );
+    return NextResponse.json({
+      ok: false,
+      logs: [{ ts: new Date().toISOString(), level: "error" as const, msg: `Failed: ${(e as Error).message}` }],
+    }, { status: 500 });
   }
 }

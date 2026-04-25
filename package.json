@@ -7,10 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "agents:dev": "concurrently \"npm run agent:analyst\" \"npm run agent:codewriter\" \"npm run agent:router\"",
-    "agent:analyst": "tsx agents/analyst/index.ts",
-    "agent:codewriter": "tsx agents/codewriter/index.ts",
-    "agent:router": "tsx agents/router/index.ts"
+    "agents:dev": "concurrently \"pnpm run agent:fraud\" \"pnpm run agent:developer\"",
+    "agent:fraud": "tsx agents/fraud/index.ts",
+    "agent:developer": "tsx agents/developer/index.ts"
   },
   "dependencies": {
     "@x402/core": "^2.10.0",
