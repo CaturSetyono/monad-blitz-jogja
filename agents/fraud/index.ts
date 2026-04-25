@@ -35,9 +35,14 @@ async function gatherOnChainData(tokenAddress: Address) {
     ]);
   } catch {}
 
-  const bytecode = await client.getBytecode({ address: tokenAddress });
-  const bytecodeSize = bytecode ? bytecode.length : 0;
-  const codeHex = bytecode?.toLowerCase() ?? "0x";
+  let bytecode;
+  let codeHex = "0x";
+  let bytecodeSize = 0;
+  try {
+    bytecode = await client.getBytecode({ address: tokenAddress });
+    codeHex = bytecode?.toLowerCase() ?? "0x";
+    bytecodeSize = bytecode ? bytecode.length : 0;
+  } catch {}
 
   const hasMint = codeHex.includes("0x40c10f19") || codeHex.includes("mint");
   const hasBlacklist = codeHex.includes("blacklist") || codeHex.includes("0xa8b9e84c");
@@ -53,7 +58,7 @@ async function gatherOnChainData(tokenAddress: Address) {
     decimals,
     totalSupply: totalSupply.toString(),
     bytecodeSize,
-    contractExists: bytecode !== "0x" && bytecode !== undefined,
+    contractExists: bytecode !== undefined && bytecode.length > 0,
     indicators: { hasMint, hasBlacklist, hasPause, hasOwnership, hasHighTax, isProxy },
   };
 }
