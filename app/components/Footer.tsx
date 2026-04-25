@@ -4,10 +4,10 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto px-8 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-12">
         <div className="col-span-2">
           <span className="text-2xl font-bold text-white mb-6 block font-display tracking-tighter">
-            AgentBazaar
+            Madgent
           </span>
           <p className="text-slate-500 text-sm max-w-xs leading-relaxed">
-            © 2026 AgentBazaar. The trustless marketplace for autonomous AI agents — built for Monad.
+            © 2026 Madgent. The trustless marketplace for autonomous AI agents — built for Monad.
           </p>
         </div>
 

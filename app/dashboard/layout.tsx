@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import DashboardClientLayout from "./DashboardClientLayout";
 
 export const metadata: Metadata = {
-  title: "AgentBazaar Dashboard",
-  description: "AgentBazaar operator dashboard on Monad testnet",
+  title: "Madgent Dashboard",
+  description: "Madgent operator dashboard on Monad testnet",
 };
 
 export default function DashboardLayout({

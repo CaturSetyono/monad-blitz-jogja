@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { usePathname } from "next/navigation";
+import { useAccount, useChainId } from "wagmi";
 import Sidebar from "@/app/components/dashboard/Sidebar";
 import DashboardHeader from "@/app/components/dashboard/DashboardHeader";
 import StatusBar from "@/app/components/dashboard/StatusBar";
-import { connectWallet, getChainId } from "@/lib/evm";
 
 export default function DashboardClientLayout({
   children,
@@ -13,26 +13,11 @@ export default function DashboardClientLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const [address, setAddress] = useState<`0x${string}` | null>(null);
-  const [chainId, setChainId] = useState<number | null>(null);
-  const [connecting, setConnecting] = useState(false);
+  const { address, isConnected } = useAccount();
+  const activeChainId = useChainId();
+  const chainId = isConnected ? activeChainId : null;
 
   const needsChainSwitch = chainId !== null && chainId !== 10143;
-
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        const id = await getChainId();
-        if (mounted) setChainId(id);
-      } catch {
-        // ignore: no injected wallet
-      }
-    })();
-    return () => {
-      mounted = false;
-    };
-  }, []);
 
   const headerTitle = useMemo(() => {
     if (pathname === "/dashboard") return "Overview";
@@ -41,25 +26,12 @@ export default function DashboardClientLayout({
     return "Dashboard";
   }, [pathname]);
 
-  async function onConnect() {
-    setConnecting(true);
-    try {
-      const res = await connectWallet();
-      setAddress(res.address);
-      setChainId(res.chainId);
-    } finally {
-      setConnecting(false);
-    }
-  }
-
   return (
     <div className="min-h-screen bg-background text-white">
       <DashboardHeader
         title={headerTitle}
-        address={address}
+        address={address ?? null}
         chainId={chainId}
-        connecting={connecting}
-        onConnect={onConnect}
       />
       <Sidebar />
 

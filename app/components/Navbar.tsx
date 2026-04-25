@@ -14,7 +14,7 @@ export default function Navbar() {
               animate={{ opacity: 1, x: 0 }}
               className="text-2xl font-bold text-white tracking-tighter font-display"
             >
-              AgentBazaar
+              Madgent
             </motion.div>
           </Link>
           <div className="hidden md:flex gap-8">

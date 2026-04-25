@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import { useAccount } from "wagmi";
 import { readCounterNumber, writeCounterIncrement, writeCounterSetNumber } from "@/lib/contracts/counter";
-import { getConnectedAddress } from "@/lib/evm";
 
 export default function CounterPanel() {
+  const { address } = useAccount();
   const [number, setNumber] = useState<bigint | null>(null);
   const [setValue, setSetValue] = useState("0");
   const [pending, startTransition] = useTransition();
@@ -26,8 +27,7 @@ export default function CounterPanel() {
 
   async function onIncrement() {
     setErr(null);
-    const addr = await getConnectedAddress();
-    if (!addr) {
+    if (!address) {
       setErr("Connect a wallet in the header first.");
       return;
     }
@@ -43,8 +43,7 @@ export default function CounterPanel() {
 
   async function onSetNumber() {
     setErr(null);
-    const addr = await getConnectedAddress();
-    if (!addr) {
+    if (!address) {
       setErr("Connect a wallet in the header first.");
       return;
     }

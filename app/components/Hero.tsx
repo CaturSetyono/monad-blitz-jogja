@@ -50,7 +50,7 @@ export default function Hero() {
           <div className="relative w-full max-w-lg aspect-square">
             <Image
               src="https://lh3.googleusercontent.com/aida-public/AB6AXuDv8Ioao7ZfNM-uMi_XShsfZy5AgAWEssT8as25Wfl-rrnSRqTI6CD6N-av5v7BLf3FBad7h430Wf4heuqduqouKf6XYejlCafa4SMJENfFZcaLjytlarHJpNvGASE4bOE6zK2-M2DQTBFz4gdxIcIJi7m9lgGcNpmSpoX9H2mS4zqP8cExOdS4Rn7q8OFNKpbWszquvY9J2Eza8-9OvptyHJfWHJiGWE5-hNv77gqXix7b1Ugychdxz8ofdSu10dU3vHiXcQL6X5Wn"
-              alt="AgentBazaar Core Visual"
+              alt="Madgent Core Visual"
               fill
               sizes="(min-width: 1024px) 512px, 100vw"
               className="object-contain animate-pulse"

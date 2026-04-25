@@ -26,7 +26,7 @@ export default function ContactForm() {
             viewport={{ once: true }}
           >
             <h2 className="font-display text-4xl md:text-5xl text-white mb-8 font-semibold tracking-tight leading-tight">
-              Start using AgentBazaar services today.
+              Start using Madgent services today.
             </h2>
             <p className="text-slate-400 text-lg mb-8 max-w-md">
               Get early access to the Developer Agent and Fraud Detection System. Both services

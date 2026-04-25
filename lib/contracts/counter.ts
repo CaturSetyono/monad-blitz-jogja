@@ -1,7 +1,8 @@
-import { getPublicClient, getWalletClient } from "@/lib/evm";
 import { CONTRACT_ADDRESSES } from "@/lib/contracts/addresses";
+import { getAccount, readContract, waitForTransactionReceipt, writeContract } from "@wagmi/core";
+import { wagmiConfig } from "@/lib/wallet";
 
-const counterAbi = [
+export const counterAbi = [
   {
     type: "function",
     name: "number",
@@ -25,7 +26,7 @@ const counterAbi = [
   },
 ] as const;
 
-function getCounterAddress() {
+export function getCounterAddress() {
   const addr = CONTRACT_ADDRESSES.counter;
   if (!addr) {
     throw new Error("Missing NEXT_PUBLIC_COUNTER_ADDRESS.");
@@ -34,20 +35,25 @@ function getCounterAddress() {
 }
 
 export async function readCounterNumber() {
-  const client = getPublicClient();
-  return client.readContract({ address: getCounterAddress(), abi: counterAbi, functionName: "number" });
+  return readContract(wagmiConfig, { address: getCounterAddress(), abi: counterAbi, functionName: "number" });
 }
 
 export async function writeCounterIncrement() {
-  const client = getWalletClient();
-  const [account] = await client.getAddresses();
+  const { address: account } = getAccount(wagmiConfig);
   if (!account) throw new Error("No connected account.");
-  return client.writeContract({ account, address: getCounterAddress(), abi: counterAbi, functionName: "increment" });
+  const hash = await writeContract(wagmiConfig, { account, address: getCounterAddress(), abi: counterAbi, functionName: "increment" });
+  return waitForTransactionReceipt(wagmiConfig, { hash });
 }
 
 export async function writeCounterSetNumber(n: bigint) {
-  const client = getWalletClient();
-  const [account] = await client.getAddresses();
+  const { address: account } = getAccount(wagmiConfig);
   if (!account) throw new Error("No connected account.");
-  return client.writeContract({ account, address: getCounterAddress(), abi: counterAbi, functionName: "setNumber", args: [n] });
+  const hash = await writeContract(wagmiConfig, {
+    account,
+    address: getCounterAddress(),
+    abi: counterAbi,
+    functionName: "setNumber",
+    args: [n],
+  });
+  return waitForTransactionReceipt(wagmiConfig, { hash });
 }
