@@ -42,7 +42,9 @@ export function loadHistory(): HistoryEntry[] {
   }
 }
 
-export function saveHistoryEntry(entry: Omit<HistoryEntry, "id">): HistoryEntry {
+export function saveHistoryEntry(
+  entry: Omit<DevHistoryEntry, "id"> | Omit<FraudHistoryEntry, "id">
+): HistoryEntry {
   const full = { ...entry, id: uid() } as HistoryEntry;
   const list = loadHistory();
   list.unshift(full);
