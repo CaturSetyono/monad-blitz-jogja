@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { saveHistoryEntry } from "@/lib/agent-history";
 
 type FraudResult = {
   tokenAddress: string;
@@ -42,6 +43,7 @@ export default function DashboardFraudDetectionPage() {
       if (resp.status === 402) {
         setLogs((l) => [...l, { ts: new Date().toISOString(), level: "warn", msg: "Payment required (x402). Connect wallet to pay $0.25." }]);
         setError("Payment required. This is a paid agent ($0.25/task via x402).");
+        saveHistoryEntry({ type: "fraud", ts: new Date().toISOString(), tokenAddress: tokenAddress.trim(), tokenName: "", tokenSymbol: "", riskScore: 0, recommendation: "", safeToInteract: false, flagCount: 0, status: "payment_required" });
         return;
       }
 
@@ -58,10 +60,12 @@ export default function DashboardFraudDetectionPage() {
         { ts: new Date().toISOString(), level: "info", msg: `Analysis complete: ${fraudResult.recommendation} (risk: ${fraudResult.riskScore}/100)` },
         { ts: new Date().toISOString(), level: fraudResult.riskScore > 60 ? "error" : fraudResult.riskScore > 30 ? "warn" : "info", msg: fraudResult.summary },
       ]);
+      saveHistoryEntry({ type: "fraud", ts: new Date().toISOString(), tokenAddress: tokenAddress.trim(), tokenName: fraudResult.tokenInfo.name, tokenSymbol: fraudResult.tokenInfo.symbol, riskScore: fraudResult.riskScore, recommendation: fraudResult.recommendation, safeToInteract: fraudResult.safeToInteract, flagCount: fraudResult.flags.length, status: "success" });
     } catch (e) {
       const msg = (e as Error).message;
       setError(msg);
       setLogs((l) => [...l, { ts: new Date().toISOString(), level: "error", msg }]);
+      saveHistoryEntry({ type: "fraud", ts: new Date().toISOString(), tokenAddress: tokenAddress.trim(), tokenName: "", tokenSymbol: "", riskScore: 0, recommendation: "", safeToInteract: false, flagCount: 0, status: "error" });
     } finally {
       setLoading(false);
     }
