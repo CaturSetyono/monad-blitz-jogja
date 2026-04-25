@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { saveHistoryEntry } from "@/lib/agent-history";
 
 type DevTask =
   | "code_review"
@@ -48,12 +49,17 @@ export default function DashboardDeveloperPage() {
       });
       const json = (await res.json()) as { ok: boolean; logs: RunLog[]; summary?: string };
       if (!res.ok || !json.ok) {
-        setLogs(json.logs?.length ? json.logs : [{ ts: new Date().toISOString(), level: "error", msg: "Run failed." }]);
+        const errorLogs = json.logs?.length ? json.logs : [{ ts: new Date().toISOString(), level: "error" as const, msg: "Run failed." }];
+        setLogs(errorLogs);
+        saveHistoryEntry({ type: "developer", ts: new Date().toISOString(), repoUrl: repoUrl.trim(), branch: branch.trim(), task, status: "error", logCount: errorLogs.length, firstLog: errorLogs[0]?.msg });
         return;
       }
       setLogs(json.logs);
+      saveHistoryEntry({ type: "developer", ts: new Date().toISOString(), repoUrl: repoUrl.trim(), branch: branch.trim(), task, status: "success", logCount: json.logs.length, firstLog: json.logs[0]?.msg });
     } catch (e) {
-      setLogs([{ ts: new Date().toISOString(), level: "error", msg: (e as Error).message }]);
+      const msg = (e as Error).message;
+      setLogs([{ ts: new Date().toISOString(), level: "error", msg }]);
+      saveHistoryEntry({ type: "developer", ts: new Date().toISOString(), repoUrl: repoUrl.trim(), branch: branch.trim(), task, status: "error", logCount: 1, firstLog: msg });
     } finally {
       setRunning(false);
     }
